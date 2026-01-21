@@ -1,13 +1,14 @@
-# Build stage: use Debian with full build tools
-FROM python:3.11-slim-bookworm AS builder
+# Build stage: Alpine with build tools
+FROM python:3.11-alpine AS builder
 
 WORKDIR /app
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN apk add --no-cache gcc g++ musl-dev linux-headers python3-dev && \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Runtime stage: use Alpine for smaller image
+# Runtime stage: clean Alpine without build tools
 FROM python:3.11-alpine
 
 WORKDIR /app
