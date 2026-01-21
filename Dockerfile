@@ -1,24 +1,23 @@
-FROM alpine:latest
-
-RUN apk add --update python3 py3-pip
+# Build stage: use Debian with full build tools
+FROM python:3.11-slim-bookworm AS builder
 
 WORKDIR /app
 
 COPY requirements.txt .
 
-# Create virtual environment
-RUN python3 -m venv venv
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# This is the key change - properly activate the venv and use its pip
-RUN . venv/bin/activate && pip3 install --no-cache-dir -r requirements.txt
+# Runtime stage: use Alpine for smaller image
+FROM python:3.11-alpine
+
+WORKDIR /app
+
+COPY --from=builder /install /usr/local
 
 COPY . .
 
-# Default to port 8000 if PORT isn't set
 ENV PORT=8000
 
-# EXPOSE is just documentation
 EXPOSE $PORT
 
-# Modify CMD to use the virtual environment's Python/Gunicorn
-CMD . venv/bin/activate && venv/bin/gunicorn --bind 0.0.0.0:$PORT app:app
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app"]
